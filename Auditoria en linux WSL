@@ -1,23 +1,43 @@
-# Auditoría Automatizada en Linux (WSL)  
+#!/bin/bash
 
-Script para resolver problemas de permisos, servicios y archivos temporales en WSL/Linux*  
+# Configuración
+LOG_FILE="auditoria_$(date +%Y%m%d_%H%M%S).log"
+TEMP_DIR="$HOME/tmp_simulado"
 
-# Requisitos  
-- WSL2 con Ubuntu instalado  
-- Permisos de sudo  
-- Git (opcional para clonar el repo)  
+# Función para registrar acciones
+log() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
 
-#Instalación  
+# 1. Verificar espacio en disco
+log "=== VERIFICACIÓN DE ESPACIO EN DISCO ==="
+df -h | tee -a "$LOG_FILE"
 
-#1. Clona el repositorio:  
-   ```bash
-   git clone https://github.com/tu-usuario/auditoria-linux-wsl.git  
-   cd auditoria-linux-wsl
-   
-#2. Dale permisos de ejecución:
+# 2. Limpieza de archivos temporales
+log "=== LIMPIEZA DE ARCHIVOS TEMPORALES ==="
+if [ -d "$TEMP_DIR" ]; then
+    log "Eliminando archivos en $TEMP_DIR con más de 7 días de antigüedad..."
+    find "$TEMP_DIR" -type f -mtime +7 -exec rm -v {} \; | tee -a "$LOG_FILE"
+else
+    log "El directorio temporal $TEMP_DIR no existe. Creándolo..."
+    mkdir -p "$TEMP_DIR"
+fi
 
-chmod +x auditoria.sh
+# 3. Verificación de permisos
+log "=== AUDITORÍA DE PERMISOS ==="
+log "Buscando archivos con permisos demasiado abiertos..."
+find /home -type f \( -perm -o+w -o -perm -g+w \) -exec ls -l {} \; | tee -a "$LOG_FILE"
 
-#3.Ejecuta el script:
+log "Buscando archivos con permisos inusuales..."
+find /home -type f -perm /777 -exec ls -l {} \; | tee -a "$LOG_FILE"
 
-./auditoria.sh
+# 4. Verificación de servicios (alternativa para WSL)
+log "=== VERIFICACIÓN DE SERVICIOS ==="
+log "Servicios activos:"
+service --status-all | grep "+" | tee -a "$LOG_FILE"
+
+log "Servicios inactivos:"
+service --status-all | grep "-" | tee -a "$LOG_FILE"
+
+log "=== AUDITORÍA COMPLETADA ==="
+echo "Los resultados detallados se han guardado en $LOG_FILE"
