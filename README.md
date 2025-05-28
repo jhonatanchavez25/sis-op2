@@ -1,4 +1,4 @@
-# Auditoría Automatizada en Linux (WSL)  
+# Auditoría Automatizada en Linux mediante WSL  
 
 Script para resolver problemas de permisos, servicios y archivos temporales en WSL/Linux*  
 
